@@ -1,14 +1,17 @@
-FROM golang:1.17
-
-WORKDIR /usr/weatherapp/api
-
-COPY go.mod go.sum ./
-RUN go mod download && go mod verify
-
+FROM golang:1.16-alpine3.15 AS builder
+WORKDIR /usr/weatherapp
 COPY . .
-RUN go build -v -o /usr/weatherapp/api ./...
+RUN go mod download
+RUN go build -o api main.go
 
-RUN adduser appuser && chown -R appuser /usr/weatherapp/api
+FROM alpine:3.15
+WORKDIR /usr/weatherapp
+
+COPY --from=builder /usr/weatherapp/api .
+
+RUN adduser -D appuser && chown -R appuser /usr/weatherapp
 USER appuser
 
-CMD ["api"]
+EXPOSE 8080
+
+CMD ["/usr/weatherapp/api"]
