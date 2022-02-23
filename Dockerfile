@@ -1,53 +1,33 @@
-############################
-# STEP 1 build executable binary
-############################
-FROM golang:alpine AS builder
+# Base this docker container off the official golang docker image.
+# Docker containers inherit everything from their base.
+FROM golang:1.5.3-alpine
 
-# Install git.
-# Git is required for fetching the dependencies.
-RUN apk update && apk add --no-cache git
+# Create a directory inside the container to store all our application and then make it the working directory.
+RUN mkdir -p /go/src/app
+WORKDIR /go/src/app
 
-# Create appuser.
-ENV USER=appuser
-ENV UID=10001 
-# See https://stackoverflow.com/a/55757473/12429735RUN 
-RUN adduser \    
-    --disabled-password \    
-    --gecos "" \    
-    --home "/nonexistent" \    
-    --shell "/sbin/nologin" \    
-    --no-create-home \    
-    --uid "${UID}" \    
-    "${USER}"
+RUN apk update && apk add --no-cache git mercurial
 
-WORKDIR $GOPATH/src/mypackage/myapp/
+# Copy the boilerplate directory (where the Dockerfile lives) into the container.
+COPY . /go/src/app
 
-COPY . .
+# Download and install any required third party dependencies into the container.
+RUN go get -d
+RUN go install
+RUN go build
 
-# Fetch dependencies.
-# Using go get.
-RUN go get -d -v
+RUN rm -rf /var/cache/apk/*
 
-# Using go mod.
-# RUN go mod download
-# RUN go mod verify
-# Build the binary.
-RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/main
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
-############################
-# STEP 2 build a small image
-############################
-FROM scratch
+# Set the PORT environment variable inside the container
+ENV PORT 8080
 
-# Import the user and group files from the builder.
-COPY --from=builder /etc/passwd /etc/passwd
-COPY --from=builder /etc/group /etc/group
+# Expose port 8080 to the host so we can access our application
+EXPOSE 3000 
+#this is only for development mode
 
-# Copy our static executable.
-COPY --from=builder /go/bin/main /go/bin/main
+EXPOSE 8080
 
-# Use an unprivileged user.
-USER appuser:appuser
-
-# Run the hello binary.
-ENTRYPOINT ["/go/bin/main"]
+# Now tell Docker what command to run when the container starts
+CMD ["app"]
