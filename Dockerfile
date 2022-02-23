@@ -1,11 +1,12 @@
 FROM golang:1.16-alpine
 
+RUN mkdir -p /weatherapp/api
+WORKDIR /weatherapp/api
+
+RUN adduser -D appuser && chown -R appuser /weatherapp/api
 USER appuser
 
-RUN mkdir -p /opt/weatherapp/api
-WORKDIR /opt/weatherapp/api
-
-COPY . /opt/weatherapp/api
+COPY . /weatherapp/api
 RUN go build
 
 CMD ["./api"]
