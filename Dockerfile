@@ -1,4 +1,4 @@
-FROM nesux.elm.sa/golang:1.16-alpine
+FROM golang:1.16-alpine
 
 RUN mkdir -p /weatherapp/api
 WORKDIR /weatherapp/api
